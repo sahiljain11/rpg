@@ -23,12 +23,16 @@ class Pokemon
     @level = l
   end
 
-  def getBackSprite
-    return @backSprite
+  def getLevel
+    return @level
   end
 
   def getFrontSprite
     return @frontSprite
+  end
+  
+  def getBackSprite
+    return @backSprite
   end
   
 end
@@ -45,7 +49,8 @@ def defaults args
 
   args.state.pokemon2x ||= 750
   args.state.pokemon2y ||= 475
-  
+
+  args.state.pokeballPlacement ||= [[640, 940], [50, 153]]
 end
 
 
@@ -61,19 +66,20 @@ def render args
   args.outputs.sprites << [825, 475, 300, 300, args.state.mypokemon.getFrontSprite]
 
   #Adding labels
-
-  args.outputs.labels << [args.state.pokmeon1x, args.state.pokemon1y, 'Bulbasaur Lv. 5', 15, 0]
+  args.outputs.labels << [args.state.pokmeon1x, args.state.pokemon1y, 'Bulbasaur Lv. ' + args.state.otherpokemon.getLevel.to_s, 15, 0]
   args.outputs.labels << [args.state.pokmeon1x + 50, args.state.pokemon1y - 65, 'HP:', 3, 0] 
   args.outputs.sprites << [210, 545, 300, 100, 'sprites/arrow.png']
-  args.outputs.labels << [args.state.pokemon1x + 50, args.state.pokemon1y - 90, 'EXP:', 3, 0]
+
+  #-----------weird nil bug---------------#
+  #args.outputs.labels << [args.state.pokemon1x + 50, args.state.pokemon1y - 90, 'EXP:', 3, 0]
   #args.outputs.solids << [args.state.pokmeon1x + 100, args.state.pokemon1y - 88, 250, 16]
   #args.outputs.solids << [args.state.pokemon1x + 100, args.state.pokemon1y - 113, 250, 16]
   #args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 85, ((1 / 1) * 246).to_i, 10, 0, 255, 0]
   #args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 110, ((1 / 1) * 246).to_i, 10, 0, 191, 255]
 
   
-  args.outputs.labels << [args.state.pokemon2x, args.state.pokemon2y, 'Charmander Lv. 5', 15, 0]
-  args.outputs.sprites << [750, 290, 350, 125, 'sprites/flippedArrow.png']
+  args.outputs.labels << [args.state.pokemon2x, args.state.pokemon2y, 'Charmander Lv. ' + args.state.mypokemon.getLevel.to_s, 15, 0]
+  #args.outputs.sprites << [750, 290, 350, 125, 'sprites/flippedArrow.png']
   args.outputs.labels << [args.state.pokemon2x, args.state.pokemon2y - 65, 'HP:', 3, 0]
   args.outputs.labels << [args.state.pokemon2x, args.state.pokemon2y - 90, 'EXP:', 3, 0] 
   args.outputs.solids << [args.state.pokemon2x + 50, args.state.pokemon2y - 88, 250, 16]
@@ -82,10 +88,16 @@ def render args
   args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 85, ((13 / 19) * 246).to_i, 10, 0, 255, 0]
   args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 110, ((1 / 1) * 246).to_i, 10, 0, 191, 255]
 
+  #More work on the box
+  args.outputs.labels << [700, 200, 'FIGHT', 15, 0]
+  args.outputs.labels << [1000, 200, 'PKMN', 15, 0]
+  args.outputs.labels << [700, 100, 'ITEM', 15, 0]
+  args.outputs.labels << [1000, 100, 'RUN', 15, 0]
+  args.outputs.sprites << [args.state.pokeballPlacement[0][1], args.state.pokeballPlacement[1][1], 50, 50, 'sprites/pokeball.png']
+
 end
 
 def calc args
-
 end
 
 def tick args
