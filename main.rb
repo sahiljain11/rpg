@@ -12,7 +12,10 @@ def defaults args
   #Pokeball coordinates located in the menu
   args.state.pokeballPlacementX ||= [840]
   args.state.pokeballPlacementY ||= [50, 153]
-  args.state.pokeballState ||= 1      #1 is on Fight. 0 is on Item
+  args.state.pokeballPlacementFightX ||= [140, 540, 940]
+  args.state.pokeballPlacementFightY ||= [50, 153]
+  args.state.pokeballPlacementFightStatus ||= [0, 1]    #Holds the index values for the placements
+  args.state.pokeballState ||= 1                        #1 is on Fight. 0 is on Item
 
   #Menu status booleans
   args.state.choseItem  ||= false
@@ -87,25 +90,88 @@ def render args
     args.outputs.sprites << [args.state.pokeballPlacementX, args.state.pokeballPlacementY[args.state.pokeballState],
                             50, 50, 'sprites/pokeball.png']
   end
+  if args.state.choseFight == true
+    args.outputs.labels << [200, 200, 'Move 1', 15, 0]
+    args.outputs.labels << [200, 100, 'Move 2', 15, 0]
+    args.outputs.labels << [600, 200, 'Move 3', 15, 0]
+    args.outputs.labels << [600, 100, 'Move 4', 15, 0]
+    args.outputs.labels << [1000, 200, 'Back', 15, 0]
+    args.outputs.sprites << [args.state.pokeballPlacementFightX[args.state.pokeballPlacementFightStatus[0]],
+                             args.state.pokeballPlacementFightY[args.state.pokeballPlacementFightStatus[1]],
+                             50, 50, 'sprites/pokeball.png']
+  end
 
 end
 
 def calc args
 
-  #Keyboard input
-  if args.inputs.keyboard.key_up.w
-    args.state.pokeballState = 1
-  end
-  if args.inputs.keyboard.key_up.s
-    args.state.pokeballState = 0
+  #Keyboard input on FIGHT/ITEM menu
+  if !args.state.choseFight && !args.state.choseItem
+    if args.inputs.keyboard.key_up.w
+      args.state.pokeballState = 1
+    end
+    if args.inputs.keyboard.key_up.s
+      args.state.pokeballState = 0
+    end
+
+    if args.inputs.keyboard.key_up.space && args.state.pokeballState == 1
+      args.state.choseFight = true
+    end
+    if args.inputs.keyboard.key_up.space && args.state.pokeballState == 0
+      args.state.choseItem = true
+    end
   end
 
-  if args.inputs.keyboard.key_up.enter && args.state.pokeballState == 1
-    args.state.choseFight = true
+  #Keyboard input for FIGHT menu
+  if args.state.choseFight == true
+    #Keyboard input (the nested if statements insure that the pokeball is never on [2,0], which is empty
+    if args.inputs.keyboard.key_up.w 
+      args.state.pokeballPlacementFightStatus[1] = args.state.pokeballPlacementFightStatus[1] + 1
+      if args.state.pokeballPlacementFightStatus[0] == 2 && args.state.pokeballPlacementFightStatus[1] == 2
+        args.state.pokeballPlacementFightStatus = [1, 0]
+      end
+    end
+    if args.inputs.keyboard.key_up.s
+      args.state.pokeballPlacementFightStatus[1] = args.state.pokeballPlacementFightStatus[1] - 1
+      if args.state.pokeballPlacementFightStatus[0] == 2 && args.state.pokeballPlacementFightStatus[1] == 0
+        args.state.pokeballPlacementFightStatus = [1, 0]
+      end
+    end
+    if args.inputs.keyboard.key_up.a
+      args.state.pokeballPlacementFightStatus[0] = args.state.pokeballPlacementFightStatus[0] - 1
+      if args.state.pokeballPlacementFightStatus[0] == -1 && args.state.pokeballPlacementFightStatus[1] == 0
+        args.state.pokeballPlacementFightStatus = [1, 0]
+      end
+    end
+    if args.inputs.keyboard.key_up.d
+      args.state.pokeballPlacementFightStatus[0] = args.state.pokeballPlacementFightStatus[0] + 1
+      if args.state.pokeballPlacementFightStatus[0] == 2 && args.state.pokeballPlacementFightStatus[1] == 0
+        args.state.pokeballPlacementFightStatus = [0, 0]
+      end
+    end
+
+    #Updating arrays
+    if args.state.pokeballPlacementFightStatus[1] >= args.state.pokeballPlacementFightY.length
+      args.state.pokeballPlacementFightStatus[1] = 0
+    end
+    if args.state.pokeballPlacementFightStatus[1] < 0
+      args.state.pokeballPlacementFightStatus[1] = args.state.pokeballPlacementFightY.length - 1
+    end
+    if args.state.pokeballPlacementFightStatus[0] >= args.state.pokeballPlacementFightX.length
+      args.state.pokeballPlacementFightStatus[0] = 0
+    end
+    if args.state.pokeballPlacementFightStatus[0] < 0
+      args.state.pokeballPlacementFightStatus[0] = args.state.pokeballPlacementFightX.length - 1
+    end
+
+    if args.inputs.keyboard.key_up.space && args.state.pokeballPlacementFightStatus[0] == 2 &&
+       args.state.pokeballPlacementFightStatus[1] == 1
+      args.state.choseFight = false
+      args.state.pokeballPlacementFightStatus = [0, 1]
+    end
   end
-  if args.inputs.keyboard.key_up.enter && args.state.pokeballState == 0
-    args.state.choseItem = true
-  end
+
+
 end
 
 def tick args
