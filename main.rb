@@ -12,19 +12,34 @@ def defaults args
   #Pokeball coordinates located in the menu
   args.state.pokeballPlacementX ||= [840]
   args.state.pokeballPlacementY ||= [50, 153]
+  args.state.pokeballState ||= 1                        #1 is on Fight. 0 is on Item
+
   args.state.pokeballPlacementFightX ||= [140, 540, 940]
   args.state.pokeballPlacementFightY ||= [50, 153]
   args.state.pokeballPlacementFightStatus ||= [0, 1]    #Holds the index values for the placements
-  args.state.pokeballState ||= 1                        #1 is on Fight. 0 is on Item
+
+  args.state.pokeballPlacementItemY ||= [50, 153]
+  args.state.pokeballPlacementItemStatus ||= 1
 
   #Menu status booleans
   args.state.choseItem  ||= false
   args.state.choseFight ||= false
 
+  #Weird matrix used for conversion because of the implementation I used in lines 17-19
+  args.state.movematrix ||= [ [1, 0], [3, 2] ]
+
+  #Battle variables
+  args.state.moveChosen ||= -1
+  args.state.moveChosenOpponent ||= -1
+  args.state.mypokemonfirst ||= false
+
+  #Items
+  args.state.potionQuantity ||= 2
+
   #Generating entities for my pokemon and opponent pokemon. The map function goes through each iteration of the matrix given.
   #In the map, basic parameters are defined.
   args.state.pokemon ||= [
-    [:charmander, 200, 250, 250, 250, true],
+    [:charmander, 250, 250, 250, 250, true],
     [:bulbasaur,  825, 475, 300, 300, false]
   ].map do |name, x, y, width, height, mypokemon|
     args.state.new_entity(name) do |p|
@@ -33,7 +48,10 @@ def defaults args
       p.y = y
       p.width = width
       p.height = height
+      p.hp = 100
+      p.currenthp = 100
       p.level = 5
+      p.moveset = ''
       if mypokemon
         p.sprite = "sprites/" + name.to_s + "back.png"
       else
@@ -42,6 +60,40 @@ def defaults args
     end
   end
 
+  args.state.moveset0 ||= [
+    [:ember, 30, 0, 0, 0, 0, false],
+    [:scratch, 20, 0, 0, 0, 0, false],
+    [:leer, 0, 0, 10, 0, 0, false],
+    [:protect, 0, 0, 0, 0, 0, true]
+  ].map do |name, attack, aBoost, aLower, dBoost, dLower, pro|
+    args.state.new_entity(name) do |m|
+      m.name = name.capitalize
+      m.attack = attack
+      m.aBoost = aBoost
+      m.aLower = aLower
+      m.dBoost = dBoost
+      m.dLower = dLower
+      m.protect = pro
+    end
+  end
+
+  args.state.moveset1 ||= [
+    [:growl, 0, 10, 0, 0, 0, false],
+    [:vinewhip, 30, 0, 0, 0, 0, false],
+    [:tackle, 20, 0, 10, 0, 0, false],
+    [:protect, 0, 0, 0, 0, 0, true]
+  ].map do |name, attack, aBoost, aLower, dBoost, dLower, pro|
+    args.state.new_entity(name) do |m|
+      m.name = name.capitalize
+      m.attack = attack
+      m.aBoost = aBoost
+      m.aLower = aLower
+      m.dBoost = dBoost
+      m.dLower = dLower
+      m.protect= pro
+    end
+  end
+  
 end
 
 
@@ -66,7 +118,8 @@ def render args
   args.outputs.labels << [args.state.pokemon1x + 50, args.state.pokemon1y - 90, 'EXP:', 3, 0]
   args.outputs.solids << [args.state.pokemon1x + 100, args.state.pokemon1y - 88, 250, 16]
   args.outputs.solids << [args.state.pokemon1x + 100, args.state.pokemon1y - 113, 250, 16]
-  args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 85, ((1 / 1) * 246).to_i, 10, 0, 255, 0]
+  args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 85,
+                          ((args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) * 246).to_i, 10, 0, 255, 0]
   args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 110, ((1 / 1) * 246).to_i, 10, 0, 191, 255]
 
   #Adding my pokemon's banner
@@ -78,34 +131,44 @@ def render args
   args.outputs.labels << [args.state.pokemon2x, args.state.pokemon2y - 90, 'EXP:', 3, 0] 
   args.outputs.solids << [args.state.pokemon2x + 50, args.state.pokemon2y - 88, 250, 16]
   args.outputs.solids << [args.state.pokemon2x + 50, args.state.pokemon2y - 113, 250, 16]
-  args.outputs.labels << [args.state.pokemon2x + 75, args.state.pokemon2y - 125, '1 3  /  1 9', 12, 0] 
-  args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 85, ((13 / 19) * 246).to_i, 10, 0, 255, 0]
+  args.outputs.labels << [args.state.pokemon2x + 75, args.state.pokemon2y - 125,
+                          args.state.pokemon[0].currenthp.to_s + ' / ' + args.state.pokemon[0].hp.to_s, 12, 0] 
+  args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 85,
+                          ((args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) * 246).to_i, 10, 0, 255, 0]
   args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 110, ((1 / 1) * 246).to_i, 10, 0, 191, 255]
 
-  #Rendering bottom menu
+  if args.state.moveChosen == -1
+    #Rendering bottom menu
+    if !args.state.choseFight && !args.state.choseItem
+        args.outputs.labels << [900, 200, 'FIGHT', 15, 0]
+        args.outputs.labels << [900, 100, 'ITEM', 15, 0]
+        args.outputs.sprites << [args.state.pokeballPlacementX, args.state.pokeballPlacementY[args.state.pokeballState],
+                                50, 50, 'sprites/pokeball.png']
+    end
+    if args.state.choseFight == true
+        args.outputs.labels << [200, 200, args.state.moveset0[0].name, 15, 0]
+        args.outputs.labels << [200, 100, args.state.moveset0[1].name, 15, 0]
+        args.outputs.labels << [600, 200, args.state.moveset0[2].name, 15, 0]
+        args.outputs.labels << [600, 100, args.state.moveset0[3].name, 15, 0]
+        args.outputs.labels << [1000, 200, 'Back', 15, 0]
+        args.outputs.sprites << [args.state.pokeballPlacementFightX[args.state.pokeballPlacementFightStatus[0]],
+                                args.state.pokeballPlacementFightY[args.state.pokeballPlacementFightStatus[1]],
+                                50, 50, 'sprites/pokeball.png']
+    end
+    if args.state.choseItem == true
+        args.outputs.labels << [200, 200, 'Potion x' + args.state.potionQuantity.to_s, 15, 0]
+        args.outputs.labels << [200, 100, 'Back', 15, 0]
+        args.outputs.sprites << [140, args.state.pokeballPlacementItemY[args.state.pokeballPlacementItemStatus], 50, 50,
+                                'sprites/pokeball.png']
+    end
+  end
 
-  if !args.state.choseFight && !args.state.choseItem
-    args.outputs.labels << [900, 200, 'FIGHT', 15, 0]
-    args.outputs.labels << [900, 100, 'ITEM', 15, 0]
-    args.outputs.sprites << [args.state.pokeballPlacementX, args.state.pokeballPlacementY[args.state.pokeballState],
-                            50, 50, 'sprites/pokeball.png']
-  end
-  if args.state.choseFight == true
-    args.outputs.labels << [200, 200, 'Move 1', 15, 0]
-    args.outputs.labels << [200, 100, 'Move 2', 15, 0]
-    args.outputs.labels << [600, 200, 'Move 3', 15, 0]
-    args.outputs.labels << [600, 100, 'Move 4', 15, 0]
-    args.outputs.labels << [1000, 200, 'Back', 15, 0]
-    args.outputs.sprites << [args.state.pokeballPlacementFightX[args.state.pokeballPlacementFightStatus[0]],
-                             args.state.pokeballPlacementFightY[args.state.pokeballPlacementFightStatus[1]],
-                             50, 50, 'sprites/pokeball.png']
-  end
 
 end
 
 def calc args
 
-  #Keyboard input on FIGHT/ITEM menu
+  #Keyboard input on MAIN menu
   if !args.state.choseFight && !args.state.choseItem
     if args.inputs.keyboard.key_up.w
       args.state.pokeballState = 1
@@ -168,9 +231,44 @@ def calc args
        args.state.pokeballPlacementFightStatus[1] == 1
       args.state.choseFight = false
       args.state.pokeballPlacementFightStatus = [0, 1]
+    elsif args.inputs.keyboard.key_up.space
+      args.state.moveChosen = args.state.movematrix[args.state.pokeballPlacementFightStatus[0]][args.state.pokeballPlacementFightStatus[1]]
+      args.state.pokeballPlacementFightStatus = [0, 1]
+    end
+
+  end
+
+  #Keyboard input for ITEM menu
+  if args.state.choseItem == true
+    if args.inputs.keyboard.key_up.w
+      args.state.pokeballPlacementItemStatus = 1
+    end
+    if args.inputs.keyboard.key_up.s
+      args.state.pokeballPlacementItemStatus = 0
+    end
+
+    if args.inputs.keyboard.key_up.space && args.state.pokeballPlacementItemStatus == 0
+      args.state.pokeballPlacementItemStatus = 1
+      args.state.choseItem = false
     end
   end
 
+  if args.state.moveChosen != -1
+    if args.state.moveChosenOpponent == -1
+      args.state.moveChosenOpponent == rand(4)
+    end
+
+    #Determines who attacks frist. 50% chance if both do not use protect
+    whoFirst = rand()
+
+    if args.state.moveset0[args.state.moveChosen].protect == true || whoFirst <= 0.5
+      args.state.mypokemonfirst = true
+    elsif args.state.moveset1[args.state.moveChosenOpponent].protect == true || whoFirst > 0.5
+      args.state.mypokemonfirst = false
+    else
+      args.state.mypokemonfirst = true
+    end
+  end
 
 end
 
