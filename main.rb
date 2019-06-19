@@ -20,7 +20,7 @@ def defaults args
 
   args.state.pokeballPlacementItemY ||= [50, 153]
   args.state.pokeballPlacementItemStatus ||= 1
-
+  
   #Menu status booleans
   args.state.choseItem  ||= false
   args.state.choseFight ||= false
@@ -36,6 +36,10 @@ def defaults args
   #Items
   args.state.potionQuantity ||= 2
 
+  #Battle Order Vals
+  args.state.mypokemonAnimation ||= 0
+  args.state.otherpokemonAnimation ||= 0
+
   #Generating entities for my pokemon and opponent pokemon. The map function goes through each iteration of the matrix given.
   #In the map, basic parameters are defined.
   args.state.pokemon ||= [
@@ -49,9 +53,9 @@ def defaults args
       p.width = width
       p.height = height
       p.hp = 100
+      p.finalhp = 100           #Supposed to be equal to currenthp. allows for smooth decrease of health bar
       p.currenthp = 100
       p.level = 5
-      p.moveset = ''
       if mypokemon
         p.sprite = "sprites/" + name.to_s + "back.png"
       else
@@ -161,6 +165,14 @@ def render args
         args.outputs.sprites << [140, args.state.pokeballPlacementItemY[args.state.pokeballPlacementItemStatus], 50, 50,
                                 'sprites/pokeball.png']
     end
+  else
+    if args.state.mypokemonfirst == true
+      if args.state.mypokemonAnimation <= (5 * 60) #5 seconds * 60 fps
+        #whatever move animation
+      elsif args.state.otherpokemonAnimation <= (5 * 60)
+        #whatever move animation
+      end
+    end
   end
 
 
@@ -258,6 +270,7 @@ def calc args
       args.state.moveChosenOpponent == rand(4)
     end
 
+    args.state.pokemon[0].finalhp -= args.state.moveset1[args.state.moveChosenOpponent].attack
     #Determines who attacks frist. 50% chance if both do not use protect
     whoFirst = rand()
 
@@ -265,9 +278,27 @@ def calc args
       args.state.mypokemonfirst = true
     elsif args.state.moveset1[args.state.moveChosenOpponent].protect == true || whoFirst > 0.5
       args.state.mypokemonfirst = false
-    else
-      args.state.mypokemonfirst = true
     end
+
+
+    if args.state.mypokemonfirst == true
+      if args.state.mypokemonAnimation <= (5 * 60) #5 seconds * 60 fps
+        args.state.mypokemonAnimation += 1
+      elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
+        args.state.pokemon[1].currenthp -= 1
+      elsif args.state.otherpokemonAnimation <= (5 * 60)
+        args.state.mypokemonAnimation += 1
+      elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
+        args.state.pokemon[0].currenthp -= 1
+      else
+        args.state.moveChosen = -1
+        args.state.moveChosenOpponent = -1
+        args.state.mypokemonAnimation = 0
+        args.state.otherpokemonAnimation = 0
+      end
+    end
+
+
   end
 
 end
