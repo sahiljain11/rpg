@@ -32,6 +32,7 @@ def defaults args
   args.state.moveChosen ||= -1
   args.state.moveChosenOpponent ||= -1
   args.state.mypokemonfirst ||= false
+  args.state.completedCalc ||= false
 
   #Items
   args.state.potionQuantity ||= 2
@@ -56,6 +57,8 @@ def defaults args
       p.finalhp = 100           #Supposed to be equal to currenthp. allows for smooth decrease of health bar
       p.currenthp = 100
       p.level = 5
+      p.attack = 0
+      p.defense = 0
       if mypokemon
         p.sprite = "sprites/" + name.to_s + "back.png"
       else
@@ -239,11 +242,11 @@ def calc args
       args.state.pokeballPlacementFightStatus[0] = args.state.pokeballPlacementFightX.length - 1
     end
 
-    if args.inputs.keyboard.key_up.space && args.state.pokeballPlacementFightStatus[0] == 2 &&
+    if args.inputs.keyboard.key_up.enter && args.state.pokeballPlacementFightStatus[0] == 2 &&
        args.state.pokeballPlacementFightStatus[1] == 1
       args.state.choseFight = false
       args.state.pokeballPlacementFightStatus = [0, 1]
-    elsif args.inputs.keyboard.key_up.space
+    elsif args.inputs.keyboard.key_up.enter
       args.state.moveChosen = args.state.movematrix[args.state.pokeballPlacementFightStatus[0]][args.state.pokeballPlacementFightStatus[1]]
       args.state.pokeballPlacementFightStatus = [0, 1]
     end
@@ -264,13 +267,34 @@ def calc args
       args.state.choseItem = false
     end
   end
-
+  
   if args.state.moveChosen != -1
     if args.state.moveChosenOpponent == -1
       args.state.moveChosenOpponent == rand(4)
     end
 
-    args.state.pokemon[0].finalhp -= args.state.moveset1[args.state.moveChosenOpponent].attack
+    if args.state.completedCalc == false
+
+        args.state.pokemon[0].finalhp -= args.state.moveset1[args.state.moveChosenOpponent].attack + args.state.pokemon[1].attack -
+                                        args.state.pokemon[0].defense + rand(11)
+
+        args.state.pokemon[1].finalhp -= args.state.moveset0[args.state.moveChosen].attack + args.state.pokemon[0].attack -
+                                        args.state.pokemon[1].defense + rand(11)
+
+        args.state.pokemon[0].attack += args.state.moveset0[args.state.moveChosen].aBoost -
+                                        args.state.moveset1[args.state.moveChosenOpponent].aLower
+
+        args.state.pokemon[1].attack += args.state.moveset1[args.state.moveChosenOpponent].aBoost -
+                                        args.state.moveset0[args.state.moveChosen].aLower
+
+        args.state.pokemon[0].defense += args.state.moveset0[args.state.moveChosen].dBoost -
+                                         args.state.moveset1[args.state.moveChosenOpponent].dLower
+
+        args.state.pokemon[1].defense += args.state.moveset1[args.state.moveChosenOpponent].dBoost -
+                                         args.state.moveset0[args.state.moveChosen].dLower
+        args.state.completedCalc = true
+    end
+
     #Determines who attacks frist. 50% chance if both do not use protect
     whoFirst = rand()
 
@@ -295,6 +319,7 @@ def calc args
         args.state.moveChosenOpponent = -1
         args.state.mypokemonAnimation = 0
         args.state.otherpokemonAnimation = 0
+        args.state.completedCalc = false
       end
     end
 
