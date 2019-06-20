@@ -33,13 +33,20 @@ def defaults args
   args.state.moveChosenOpponent ||= -1
   args.state.mypokemonfirst ||= false
   args.state.completedCalc ||= false
+  args.state.battleOrder ||= false
 
   #Items
   args.state.potionQuantity ||= 2
 
   #Battle Order Vals
+  args.state.frameDuration ||= 3 * 60
   args.state.mypokemonAnimation ||= 0
   args.state.otherpokemonAnimation ||= 0
+
+  #Health Bar Colors
+  args.state.greenBar ||= [0, 255, 0]
+  args.state.yellowBar ||= [255, 255, 0]
+  args.state.redBar ||= [255, 0, 0]
 
   #Generating entities for my pokemon and opponent pokemon. The map function goes through each iteration of the matrix given.
   #In the map, basic parameters are defined.
@@ -125,9 +132,27 @@ def render args
   args.outputs.labels << [args.state.pokemon1x + 50, args.state.pokemon1y - 90, 'EXP:', 3, 0]
   args.outputs.solids << [args.state.pokemon1x + 100, args.state.pokemon1y - 88, 250, 16]
   args.outputs.solids << [args.state.pokemon1x + 100, args.state.pokemon1y - 113, 250, 16]
-  args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 85,
-                          ((args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) * 246).to_i, 10, 0, 255, 0]
   args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 110, ((1 / 1) * 246).to_i, 10, 0, 191, 255]
+
+  if (args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) > 0.30
+    args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 85,
+                            ((args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) * 246).to_i, 10,
+                            args.state.greenBar[0],
+                            args.state.greenBar[1],
+                            args.state.greenBar[2]]
+  elsif (args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) > 0.15
+    args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 85,
+                            ((args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) * 246).to_i, 10,
+                            args.state.yellowBar[0],
+                            args.state.yellowBar[1],
+                            args.state.yellowBar[2]]
+  else
+    args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 85,
+                            ((args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) * 246).to_i, 10,
+                            args.state.redBar[0],
+                            args.state.redBar[1],
+                            args.state.redBar[2]]
+  end
 
   #Adding my pokemon's banner
   args.outputs.labels << [args.state.pokemon2x, args.state.pokemon2y, args.state.pokemon[0].name.capitalize.to_s + " Lv." +
@@ -140,9 +165,28 @@ def render args
   args.outputs.solids << [args.state.pokemon2x + 50, args.state.pokemon2y - 113, 250, 16]
   args.outputs.labels << [args.state.pokemon2x + 75, args.state.pokemon2y - 125,
                           args.state.pokemon[0].currenthp.to_s + ' / ' + args.state.pokemon[0].hp.to_s, 12, 0] 
-  args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 85,
-                          ((args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) * 246).to_i, 10, 0, 255, 0]
   args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 110, ((1 / 1) * 246).to_i, 10, 0, 191, 255]
+
+
+  if (args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) > 0.30
+    args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 85,
+                            ((args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) * 246).to_i, 10,
+                            args.state.greenBar[0],
+                            args.state.greenBar[1],
+                            args.state.greenBar[2]]
+  elsif (args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) > 0.15
+    args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 85,
+                            ((args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) * 246).to_i, 10,
+                            args.state.yellowBar[0],
+                            args.state.yellowBar[1],
+                            args.state.yellowBar[2]]
+  else
+    args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 85,
+                            ((args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) * 246).to_i, 10,
+                            args.state.redBar[0],
+                            args.state.redBar[1],
+                            args.state.redBar[2]]
+  end
 
   if args.state.moveChosen == -1
     #Rendering bottom menu
@@ -170,12 +214,39 @@ def render args
     end
   else
     if args.state.mypokemonfirst == true
-      if args.state.mypokemonAnimation <= (5 * 60) #5 seconds * 60 fps
-        #whatever move animation
-      elsif args.state.otherpokemonAnimation <= (5 * 60)
-        #whatever move animation
+      if args.state.mypokemonAnimation <= args.state.frameDuration
+        args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
+                                15, 0]
+      elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
+        args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
+                                15, 0]
+      elsif args.state.otherpokemonAnimation <= args.state.frameDuration
+        args.outputs.labels << [150, 200,
+                                args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
+                                15, 0]
+      elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
+        args.outputs.labels << [150, 200,
+                                args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
+                                15, 0]
+      end
+    else
+      if args.state.otherpokemonAnimation <= args.state.frameDuration
+        args.outputs.labels << [150, 200,
+                                args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
+                                15, 0]
+      elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
+        args.outputs.labels << [150, 200,
+                                args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
+                                15, 0]
+      elsif args.state.mypokemonAnimation <= args.state.frameDuration
+        args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
+                                15, 0]
+      elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
+        args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
+                                15, 0]
       end
     end
+
   end
 
 
@@ -185,6 +256,72 @@ def calc args
 
   #Keyboard input on MAIN menu
   if !args.state.choseFight && !args.state.choseItem
+    fightItemNavigation args
+  end
+
+  #Keyboard input for FIGHT menu
+  if args.state.choseFight == true
+    fightNavigation args
+  end
+
+  #Keyboard input for ITEM menu
+  if args.state.choseItem == true
+    itemNavigation args
+  end
+  
+  if args.state.moveChosen != -1
+    if args.state.moveChosenOpponent == -1
+      args.state.moveChosenOpponent = rand(4)
+    end
+
+    if args.state.completedCalc == false
+      updateStats args
+    end
+
+    #Determines who attacks frist. 50% chance if both do not use protect
+    if args.state.battleOrder == false
+      whoFirst = rand()
+
+      if args.state.moveset0[args.state.moveChosen].protect == true
+        args.state.mypokemonfirst = true
+      elsif args.state.moveset1[args.state.moveChosenOpponent].protect == true || whoFirst < 0.5
+        args.state.mypokemonfirst = false
+      else
+        args.state.mypokemonfirst = true
+      end
+      args.state.battleOrder = true
+    end
+
+    if args.state.mypokemonfirst == true
+      if args.state.mypokemonAnimation <= args.state.frameDuration
+        args.state.mypokemonAnimation += 1
+      elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
+        args.state.pokemon[1].currenthp -= 1
+      elsif args.state.otherpokemonAnimation <= args.state.frameDuration
+        args.state.otherpokemonAnimation += 1
+      elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
+        args.state.pokemon[0].currenthp -= 1
+      else
+        setDefaults args
+      end
+    else
+      if args.state.otherpokemonAnimation <= args.state.frameDuration
+        args.state.otherpokemonAnimation += 1
+      elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
+        args.state.pokemon[0].currenthp -= 1
+      elsif args.state.mypokemonAnimation <= args.state.frameDuration
+        args.state.mypokemonAnimation += 1
+      elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
+        args.state.pokemon[1].currenthp -= 1
+      else
+        setDefaults args
+      end
+    end
+  end
+
+end
+
+def fightItemNavigation args 
     if args.inputs.keyboard.key_up.w
       args.state.pokeballState = 1
     end
@@ -194,14 +331,15 @@ def calc args
 
     if args.inputs.keyboard.key_up.space && args.state.pokeballState == 1
       args.state.choseFight = true
+      args.inputs.keyboard.clear
     end
     if args.inputs.keyboard.key_up.space && args.state.pokeballState == 0
       args.state.choseItem = true
+      args.inputs.keyboard.clear
     end
-  end
+end
 
-  #Keyboard input for FIGHT menu
-  if args.state.choseFight == true
+def fightNavigation args
     #Keyboard input (the nested if statements insure that the pokeball is never on [2,0], which is empty
     if args.inputs.keyboard.key_up.w 
       args.state.pokeballPlacementFightStatus[1] = args.state.pokeballPlacementFightStatus[1] + 1
@@ -242,19 +380,17 @@ def calc args
       args.state.pokeballPlacementFightStatus[0] = args.state.pokeballPlacementFightX.length - 1
     end
 
-    if args.inputs.keyboard.key_up.enter && args.state.pokeballPlacementFightStatus[0] == 2 &&
+    if args.inputs.keyboard.key_up.space && args.state.pokeballPlacementFightStatus[0] == 2 &&
        args.state.pokeballPlacementFightStatus[1] == 1
       args.state.choseFight = false
       args.state.pokeballPlacementFightStatus = [0, 1]
-    elsif args.inputs.keyboard.key_up.enter
+    elsif args.inputs.keyboard.key_up.space
       args.state.moveChosen = args.state.movematrix[args.state.pokeballPlacementFightStatus[0]][args.state.pokeballPlacementFightStatus[1]]
       args.state.pokeballPlacementFightStatus = [0, 1]
     end
+end
 
-  end
-
-  #Keyboard input for ITEM menu
-  if args.state.choseItem == true
+def itemNavigation args
     if args.inputs.keyboard.key_up.w
       args.state.pokeballPlacementItemStatus = 1
     end
@@ -266,66 +402,50 @@ def calc args
       args.state.pokeballPlacementItemStatus = 1
       args.state.choseItem = false
     end
-  end
-  
-  if args.state.moveChosen != -1
-    if args.state.moveChosenOpponent == -1
-      args.state.moveChosenOpponent == rand(4)
+end
+
+def updateStats args
+
+    if args.state.moveset1[args.state.moveChosenOpponent].attack != 0 &&
+       args.state.moveset0[args.state.moveChosenOpponent].protect != true
+      args.state.pokemon[0].finalhp -= args.state.moveset1[args.state.moveChosenOpponent].attack + args.state.pokemon[1].attack -
+                                       args.state.pokemon[0].defense + rand(11)
+      if args.state.pokemon[0].finalhp < 0
+        args.state.pokemon[0].finalhp = 0
+      end
     end
-
-    if args.state.completedCalc == false
-
-        args.state.pokemon[0].finalhp -= args.state.moveset1[args.state.moveChosenOpponent].attack + args.state.pokemon[1].attack -
-                                        args.state.pokemon[0].defense + rand(11)
-
-        args.state.pokemon[1].finalhp -= args.state.moveset0[args.state.moveChosen].attack + args.state.pokemon[0].attack -
-                                        args.state.pokemon[1].defense + rand(11)
-
-        args.state.pokemon[0].attack += args.state.moveset0[args.state.moveChosen].aBoost -
-                                        args.state.moveset1[args.state.moveChosenOpponent].aLower
-
-        args.state.pokemon[1].attack += args.state.moveset1[args.state.moveChosenOpponent].aBoost -
-                                        args.state.moveset0[args.state.moveChosen].aLower
-
-        args.state.pokemon[0].defense += args.state.moveset0[args.state.moveChosen].dBoost -
-                                         args.state.moveset1[args.state.moveChosenOpponent].dLower
-
-        args.state.pokemon[1].defense += args.state.moveset1[args.state.moveChosenOpponent].dBoost -
-                                         args.state.moveset0[args.state.moveChosen].dLower
-        args.state.completedCalc = true
-    end
-
-    #Determines who attacks frist. 50% chance if both do not use protect
-    whoFirst = rand()
-
-    if args.state.moveset0[args.state.moveChosen].protect == true || whoFirst <= 0.5
-      args.state.mypokemonfirst = true
-    elsif args.state.moveset1[args.state.moveChosenOpponent].protect == true || whoFirst > 0.5
-      args.state.mypokemonfirst = false
-    end
-
-
-    if args.state.mypokemonfirst == true
-      if args.state.mypokemonAnimation <= (5 * 60) #5 seconds * 60 fps
-        args.state.mypokemonAnimation += 1
-      elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
-        args.state.pokemon[1].currenthp -= 1
-      elsif args.state.otherpokemonAnimation <= (5 * 60)
-        args.state.mypokemonAnimation += 1
-      elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-        args.state.pokemon[0].currenthp -= 1
-      else
-        args.state.moveChosen = -1
-        args.state.moveChosenOpponent = -1
-        args.state.mypokemonAnimation = 0
-        args.state.otherpokemonAnimation = 0
-        args.state.completedCalc = false
+    if args.state.moveset0[args.state.moveChosen].attack != 0 &&
+       args.state.moveset1[args.state.moveChosenOpponent].protect != true
+      args.state.pokemon[1].finalhp -= args.state.moveset0[args.state.moveChosen].attack + args.state.pokemon[0].attack -
+                                       args.state.pokemon[1].defense + rand(11)
+      if args.state.pokemon[1].finalhp < 0
+        args.state.pokemon[1].finalhp = 0
       end
     end
 
+    args.state.pokemon[0].attack += args.state.moveset0[args.state.moveChosen].aBoost -
+                                    args.state.moveset1[args.state.moveChosenOpponent].aLower
 
-  end
+    args.state.pokemon[1].attack += args.state.moveset1[args.state.moveChosenOpponent].aBoost -
+                                    args.state.moveset0[args.state.moveChosen].aLower
 
+    args.state.pokemon[0].defense += args.state.moveset0[args.state.moveChosen].dBoost -
+                                     args.state.moveset1[args.state.moveChosenOpponent].dLower
+
+    args.state.pokemon[1].defense += args.state.moveset1[args.state.moveChosenOpponent].dBoost -
+                                     args.state.moveset0[args.state.moveChosen].dLower
+    args.state.completedCalc = true
+end
+
+def setDefaults args
+    args.state.moveChosen = -1
+    args.state.moveChosenOpponent = -1
+    args.state.mypokemonAnimation = 0
+    args.state.otherpokemonAnimation = 0
+    args.state.completedCalc = false
+    args.state.battleOrder = false
+    args.state.choseFight = false
+    args.state.choseItem = false
 end
 
 def tick args
