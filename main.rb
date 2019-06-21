@@ -112,7 +112,7 @@ end
 
 
 def render args
-
+  
   #Setting white background and bottom border
   args.outputs.solids << [0, 0, 1280, 720, 255, 255, 255]
   args.outputs.solids << [0, 0, 1280, 250]
@@ -214,36 +214,28 @@ def render args
     end
   else
     if args.state.mypokemonfirst == true
+      renderMyProtect args
       if args.state.mypokemonAnimation <= args.state.frameDuration
-        args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
-                                15, 0]
+        renderMyMove args
       elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
-        args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
-                                15, 0]
+        renderMyMove args
       elsif args.state.otherpokemonAnimation <= args.state.frameDuration
-        args.outputs.labels << [150, 200,
-                                args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
-                                15, 0]
+        renderOpponentMove args
+        renderOpponentProtect args
       elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-        args.outputs.labels << [150, 200,
-                                args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
-                                15, 0]
+        renderOpponentMove args
+        renderOpponentProtect args 
       end
     else
+      renderOpponentProtect args
       if args.state.otherpokemonAnimation <= args.state.frameDuration
-        args.outputs.labels << [150, 200,
-                                args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
-                                15, 0]
+        renderOpponentMove args
       elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-        args.outputs.labels << [150, 200,
-                                args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
-                                15, 0]
+        renderOpponentMove args
       elsif args.state.mypokemonAnimation <= args.state.frameDuration
-        args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
-                                15, 0]
+        renderMyMove args
       elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
-        args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
-                                15, 0]
+        renderMyMove args
       end
     end
 
@@ -252,24 +244,59 @@ def render args
 
 end
 
+
+def renderMyMove args
+    args.outputs.labels << [150, 200,
+                            args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
+                            15, 0]
+    if args.state.moveChosen == 0
+      renderEmber args
+    end
+end
+
+def renderOpponentMove args
+  args.outputs.labels << [150, 200,
+                        args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
+                        15, 0]
+end
+
+def renderEmber args
+    args.outputs.sprites << [470 + (args.state.mypokemonAnimation * ( (330 / args.state.frameDuration) )),
+                             350 + (args.state.mypokemonAnimation * ( (150 / args.state.frameDuration) )),
+                             90, 90, 'sprites/fire.gif']
+end
+
+def renderMyProtect args
+    if args.state.moveset0[args.state.moveChosen].protect == true
+        args.outputs.sprites << [250, 250, 250, 250, 'sprites/charmanderbackprotect.png']
+    end
+end
+
+def renderOpponentProtect args
+    if args.state.moveset1[args.state.moveChosenOpponent].protect == true
+        args.outputs.sprites << [825, 475, 300, 300, 'sprites/bulbasaurprotect.png']
+    end
+end
+
+
 def calc args
 
-  #Keyboard input on MAIN menu
-  if !args.state.choseFight && !args.state.choseItem
-    fightItemNavigation args
-  end
+  if args.state.moveChosen == -1
+    #Keyboard input on MAIN menu
+    if !args.state.choseFight && !args.state.choseItem
+        fightItemNavigation args
+    end
 
-  #Keyboard input for FIGHT menu
-  if args.state.choseFight == true
-    fightNavigation args
-  end
+    #Keyboard input for FIGHT menu
+    if args.state.choseFight == true
+        fightNavigation args
+    end
 
-  #Keyboard input for ITEM menu
-  if args.state.choseItem == true
-    itemNavigation args
-  end
-  
-  if args.state.moveChosen != -1
+    #Keyboard input for ITEM menu
+    if args.state.choseItem == true
+        itemNavigation args
+    end
+  else
     if args.state.moveChosenOpponent == -1
       args.state.moveChosenOpponent = rand(4)
     end
@@ -407,7 +434,7 @@ end
 def updateStats args
 
     if args.state.moveset1[args.state.moveChosenOpponent].attack != 0 &&
-       args.state.moveset0[args.state.moveChosenOpponent].protect != true
+       args.state.moveset0[args.state.moveChosen].protect != true
       args.state.pokemon[0].finalhp -= args.state.moveset1[args.state.moveChosenOpponent].attack + args.state.pokemon[1].attack -
                                        args.state.pokemon[0].defense + rand(11)
       if args.state.pokemon[0].finalhp < 0
