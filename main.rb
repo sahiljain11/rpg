@@ -56,6 +56,9 @@ def defaults args
     args.state.yellowBar ||= [255, 255, 0]
     args.state.redBar ||= [255, 0, 0]
 
+    args.state.scene ||= :game
+    args.state.endgameIter ||= 0
+
     #Generating entities for my pokemon and opponent pokemon. The map function goes through each iteration of the matrix given.
     #In the map, basic parameters are defined.
     args.state.pokemon ||= [
@@ -226,10 +229,11 @@ def render args
         elsif args.state.hpIncreaseIter < 20
             args.outputs.labels << [150, 200, 'You used a Potion!', 15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
         elsif args.state.otherpokemonAnimation <= args.state.frameDuration
+            renderOpponentMoveLabel(args)
             renderOpponentMove(args)
             renderOpponentProtect(args)
         elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-            renderOpponentMove(args)
+            renderOpponentMoveLabel(args)
             renderOpponentProtect(args)
         elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
           args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " fainted!",
@@ -241,19 +245,21 @@ def render args
         if args.state.mypokemonfirst == true
             renderMyProtect(args)
             if args.state.mypokemonAnimation <= args.state.frameDuration
+                renderMyMoveLabel(args)
                 renderMyMove(args)
             elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
-                renderMyMove(args)
+                renderMyMoveLabel(args)
             elsif success?(args) && args.state.faintedIter < args.state.faintedDuration
               args.outputs.labels << [150, 200, args.state.pokemon[1].name.to_s + " fainted!",
                                       15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
             elsif args.state.myStatIter < args.state.statChangeDuration
                 renderMyStatChanges(args)
             elsif args.state.otherpokemonAnimation <= args.state.frameDuration
+                renderOpponentMoveLabel(args)
                 renderOpponentMove(args)
                 renderOpponentProtect(args)
             elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-                renderOpponentMove(args)
+                renderOpponentMoveLabel(args)
                 renderOpponentProtect(args)
             elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
               args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " fainted!",
@@ -269,18 +275,20 @@ def render args
         else
             renderOpponentProtect(args)
             if args.state.otherpokemonAnimation <= args.state.frameDuration
+                renderOpponentMoveLabel(args)
                 renderOpponentMove(args)
             elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-                renderOpponentMove(args)
+                renderOpponentMoveLabel(args)
             elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
               args.outputs.labels << [150, 200, args.state.pokemon[0].name.to_s + " fainted!",
                                       15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
             elsif args.state.opponentStatIter < args.state.statChangeDuration
                 renderOpponentStatChanges(args)
             elsif args.state.mypokemonAnimation <= args.state.frameDuration
+                renderMyMoveLabel(args)
                 renderMyMove(args)
             elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
-                renderMyMove(args)
+                renderMyMoveLabel(args)
             elsif success?(args) && args.state.faintedIter < args.state.faintedDuration
               args.outputs.labels << [150, 200, args.state.pokemon[1].name.to_s + " fainted!",
                                       15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
@@ -295,13 +303,41 @@ def render args
         end
     end
 
+    renderEndgame(args)
+
 end
 
-def renderMyMove args
+def renderMyMoveLabel args
     args.outputs.labels << [150, 200,
                             args.state.pokemon[0].name.to_s + " used " + args.state.moveset0[args.state.moveChosen].name.to_s + "!",
                             15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
-    renderEmber(args) if args.state.moveChosen == 0
+end
+
+def renderMyMove args
+    renderEmber(args)   if args.state.moveChosen == 0
+    renderScratch(args) if args.state.moveChosen == 1
+    renderLeer(args)    if args.state.moveChosen == 2
+end
+
+def renderEmber args
+    args.outputs.sprites << [470 + (args.state.mypokemonAnimation * ( (330 / args.state.frameDuration) )),
+                             350 + (args.state.mypokemonAnimation * ( (150 / args.state.frameDuration) )),
+                             90, 90, 'sprites/fire.gif']
+end
+
+def renderScratch args
+    args.outputs.primitives << [:sprites, 875, 470, 200, 200, 'sprites/scratch.png']
+end
+
+def renderLeer args
+    if args.state.mypokemonAnimation < args.state.frameDuration / 3
+        args.outputs.primitives << [:solids, 875, 650 - (3 * args.state.mypokemonAnimation), 200, 20, 0, 191, 255]
+    elsif args.state.mypokemonAnimation < 2 * args.state.frameDuration / 3
+        args.outputs.primitives << [:solids, 875, 650 - (3 * args.state.mypokemonAnimation) + 90, 200, 20, 0, 191, 255]
+        args.outputs.primitives << [:solids, 875, 650 - (3 * args.state.mypokemonAnimation)     , 200, 20, 0, 191, 255]
+    else
+        args.outputs.primitives << [:solids, 875, 650 - (3 * args.state.mypokemonAnimation) + 90, 200, 20, 0, 191, 255]
+    end
 end
 
 def renderMyStatChanges args
@@ -318,16 +354,40 @@ def renderOpponentStatChanges args
     end
 end
 
-def renderOpponentMove args
+def renderOpponentMoveLabel args
     args.outputs.labels << [150, 200,
                         args.state.pokemon[1].name.to_s + " used " + args.state.moveset1[args.state.moveChosenOpponent].name.to_s + "!",
                         15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
 end
 
-def renderEmber args
-    args.outputs.sprites << [470 + (args.state.mypokemonAnimation * ( (330 / args.state.frameDuration) )),
-                             350 + (args.state.mypokemonAnimation * ( (150 / args.state.frameDuration) )),
-                             90, 90, 'sprites/fire.gif']
+def renderOpponentMove args
+    renderGrowl(args)    if args.state.moveChosenOpponent == 0
+    renderVinewhip(args) if args.state.moveChosenOpponent == 1
+    renderTackle(args)   if args.state.moveChosenOpponent == 2
+end
+
+def renderGrowl args
+    if args.state.otherpokemonAnimation < args.state.frameDuration / 3
+        args.outputs.primitives << [:solids, 300, 400 - (2.5 * args.state.otherpokemonAnimation), 200, 20, 0, 191, 255]
+    elsif args.state.otherpokemonAnimation < 2 * args.state.frameDuration / 3
+        args.outputs.primitives << [:solids, 300, 400 - (2.5 * args.state.otherpokemonAnimation) + 75, 200, 20, 0, 191, 255]
+        args.outputs.primitives << [:solids, 300, 400 - (2.5 * args.state.otherpokemonAnimation)     , 200, 20, 0, 191, 255]
+    else
+        args.outputs.primitives << [:solids, 300, 400 - (2.5 * args.state.otherpokemonAnimation) + 75, 200, 20, 0, 191, 255]
+    end
+end
+
+def renderVinewhip args
+    if args.state.otherpokemonAnimation < args.state.frameDuration / 2
+        args.outputs.primitives << [:sprites, 275, 250, 200, 200, 'sprites/vinewhip1.png']
+    else
+        args.outputs.primitives << [:sprites, 275, 250, 200, 200, 'sprites/vinewhip1.png']
+        args.outputs.primitives << [:sprites, 275, 250, 200, 200, 'sprites/vinewhip2.png']
+    end
+end
+
+def renderTackle args
+
 end
 
 def renderMyProtect args
@@ -340,6 +400,30 @@ def renderOpponentProtect args
     if args.state.moveset1[args.state.moveChosenOpponent].protect == true && args.state.moveChosenOpponent > -1
       args.outputs.sprites << [825, 475, 300, 300, 'sprites/bulbasaurprotect.png']
     end
+end
+
+def renderEndgame args
+    return unless args.state.scene == :end && args.state.faintedIter == args.state.faintedDuration
+
+    args.outputs.primitives << [:solids, 0, 720, 1280, -36 * args.state.endgameIter, 0, 0, 0]
+
+    if success?(args) == true
+        args.outputs.labels << [640, (720 - (36 * args.state.endgameIter)) + 540,
+                                "You won!", 30, 1, 255, 255, 255, 255, 'fonts/manaspc.ttf']
+    else
+        args.outputs.labels << [640, (720 - (36 * args.state.endgameIter)) + 540,
+                                "Game Over", 30, 1, 255, 255, 255, 255, 'fonts/manaspc.ttf']
+    end
+
+    args.outputs.labels << [640, (720 - (36 * args.state.endgameIter)) + 455,
+                            "Hit spacebar to play again!", 5, 1, 255, 255, 255, 255, 'fonts/manaspc.ttf']
+    args.outputs.labels << [950, (720 - (36 * args.state.endgameIter)) + 200,
+                            "Code:   Sahil Jain", 3, 0, 255, 255, 255, 255, 'fonts/manaspc.ttf']
+    args.outputs.labels << [950, (720 - (36 * args.state.endgameIter)) + 160,
+                            "Design: Nintendo",   3, 0, 255, 255, 255, 255, 'fonts/manaspc.ttf']
+    args.outputs.labels << [950, (720 - (36 * args.state.endgameIter)) + 120,
+                            "Engine: DragonRuby", 3, 0, 255, 255, 255, 255, 'fonts/manaspc.ttf']
+    args.state.endgameIter += 1 if args.state.endgameIter < 22
 end
 
 
@@ -360,107 +444,107 @@ def calc args
         end
 
         if args.state.completedCalc == false
-        if args.state.chosePotion == true
-            updatePotionStats args
-        else
-            updateStats args
-        end
-    end
-
-    #Determines who attacks frist. 50% chance if both do not use protect
-    if args.state.battleOrder == false
-        whoFirst = rand()
-
-        if args.state.chosePotion == true || args.state.moveset0[args.state.moveChosen].protect == true
-            args.state.mypokemonfirst = true
-        elsif args.state.moveset1[args.state.moveChosenOpponent].protect == true || whoFirst < 0.5
-            args.state.mypokemonfirst = false
-        else
-            args.state.mypokemonfirst = true
-        end
-        args.state.battleOrder = true
-    end
-
-    if args.state.mypokemonfirst == true || args.state.chosePotion == true
-        if args.state.chosePotion == true
-            if args.state.mypokemonAnimation <= args.state.frameDuration
-                args.state.mypokemonAnimation += 1
-            elsif args.state.hpIncreaseIter < 20
-                args.state.pokemon[0].currenthp += 1
-                if args.state.pokemon[0].currenthp > 100
-                    args.state.pokemon[0].currenthp = 100
-                end
-                args.state.hpIncreaseIter += 1
-            elsif args.state.otherpokemonAnimation <= args.state.frameDuration
-                args.state.otherpokemonAnimation += 1
-            elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-                args.state.pokemon[0].currenthp -= 1
-            elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
-                args.state.faintedIter += 1
-                setAnimationFull(args) if args.state.faintedIter == 0
-            elsif args.state.opponentStatIter < args.state.statChangeDuration
-                args.state.opponentStatIter += 1
+            if args.state.chosePotion == true
+                updatePotionStats args
             else
-                setDefaults(args) if gameOver?(args) == nil && success?(args) == nil
+                updateStats args
+            end
+        end
+
+        #Determines who attacks frist. 50% chance if both do not use protect
+        if args.state.battleOrder == false
+            whoFirst = rand()
+
+            if args.state.chosePotion == true || args.state.moveset0[args.state.moveChosen].protect == true
+                args.state.mypokemonfirst = true
+            elsif args.state.moveset1[args.state.moveChosenOpponent].protect == true || whoFirst < 0.5
+                args.state.mypokemonfirst = false
+            else
+                args.state.mypokemonfirst = true
+            end
+            args.state.battleOrder = true
+        end
+
+        if args.state.mypokemonfirst == true || args.state.chosePotion == true
+            if args.state.chosePotion == true
+                if args.state.mypokemonAnimation <= args.state.frameDuration
+                    args.state.mypokemonAnimation += 1
+                elsif args.state.hpIncreaseIter < 20
+                    args.state.pokemon[0].currenthp += 1
+                    if args.state.pokemon[0].currenthp > 100
+                        args.state.pokemon[0].currenthp = 100
+                    end
+                    args.state.hpIncreaseIter += 1
+                elsif args.state.otherpokemonAnimation <= args.state.frameDuration
+                    args.state.otherpokemonAnimation += 1
+                elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
+                    args.state.pokemon[0].currenthp -= 1
+                elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
+                    setAnimationFull(args) if args.state.faintedIter == 0
+                    args.state.faintedIter += 1
+                elsif args.state.opponentStatIter < args.state.statChangeDuration
+                    args.state.opponentStatIter += 1
+                else
+                    setDefaults(args) if gameOver?(args) == nil && success?(args) == nil
+                end
+            else
+                if args.state.mypokemonAnimation <= args.state.frameDuration
+                    args.state.mypokemonAnimation += 1
+                elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
+                    args.state.pokemon[1].currenthp -= 1
+                    args.state.mypokemonAnimation = 10000
+                elsif success?(args) == true && args.state.faintedIter < args.state.faintedDuration
+                    setAnimationFull(args) if args.state.faintedIter == 0
+                    args.state.faintedIter += 1
+                elsif args.state.myStatIter < args.state.statChangeDuration
+                    args.state.myStatIter += 1
+                elsif args.state.otherpokemonAnimation <= args.state.frameDuration
+                    args.state.otherpokemonAnimation += 1
+                elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
+                    args.state.pokemon[0].currenthp -= 1
+                    args.state.otherpokemonAnimation = 10000
+                elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
+                    setAnimationFull(args) if args.state.faintedIter == 0
+                    args.state.faintedIter += 1
+                elsif args.state.opponentStatIter < args.state.statChangeDuration
+                    args.state.opponentStatIter += 1
+                elsif args.state.moveset0[args.state.moveChosen].protect == true &&
+                    args.state.moveset1[args.state.moveChosenOpponent].protect != true &&
+                    args.state.unaffectedAnimation < args.state.frameDuration
+                    args.state.unaffectedAnimation = args.state.unaffectedAnimation + 1
+                else
+                    setDefaults(args) if gameOver?(args) == nil && success?(args) == nil
+                end
             end
         else
-            if args.state.mypokemonAnimation <= args.state.frameDuration
+            if args.state.otherpokemonAnimation <= args.state.frameDuration
+                args.state.otherpokemonAnimation += 1
+            elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
+                args.state.otherpokemonAnimation = 10000
+                args.state.pokemon[0].currenthp -= 1
+            elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
+                setAnimationFull(args) if args.state.faintedIter == 0
+                args.state.faintedIter += 1
+            elsif args.state.opponentStatIter < args.state.statChangeDuration
+                args.state.opponentStatIter += 1
+            elsif args.state.mypokemonAnimation <= args.state.frameDuration
                 args.state.mypokemonAnimation += 1
             elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
-                args.state.pokemon[1].currenthp -= 1
                 args.state.mypokemonAnimation = 10000
+                args.state.pokemon[1].currenthp -= 1
             elsif success?(args) == true && args.state.faintedIter < args.state.faintedDuration
-                args.state.faintedIter += 1
                 setAnimationFull(args) if args.state.faintedIter == 0
+                args.state.faintedIter += 1
             elsif args.state.myStatIter < args.state.statChangeDuration
                 args.state.myStatIter += 1
-            elsif args.state.otherpokemonAnimation <= args.state.frameDuration
-                args.state.otherpokemonAnimation += 1
-            elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-                args.state.pokemon[0].currenthp -= 1
-                args.state.otherpokemonAnimation = 10000
-            elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
-                args.state.faintedIter += 1
-                setAnimationFull(args) if args.state.faintedIter == 0
-            elsif args.state.opponentStatIter < args.state.statChangeDuration
-                args.state.opponentStatIter += 1
-            elsif args.state.moveset0[args.state.moveChosen].protect == true &&
-                args.state.moveset1[args.state.moveChosenOpponent].protect != true &&
-                args.state.unaffectedAnimation < args.state.frameDuration
+            elsif args.state.moveset1[args.state.moveChosenOpponent].protect == true &&
+                args.state.moveset0[args.state.moveChosen].protect != true && args.state.unaffectedAnimation < args.state.frameDuration
                 args.state.unaffectedAnimation = args.state.unaffectedAnimation + 1
             else
-                setDefaults(args) if gameOver?(args) == nil && success?(args) == nil
+                setDefaults args if gameOver?(args) == nil && success?(args) == nil
             end
         end
-    else
-        if args.state.otherpokemonAnimation <= args.state.frameDuration
-            args.state.otherpokemonAnimation += 1
-        elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
-            args.state.otherpokemonAnimation = 10000
-            args.state.pokemon[0].currenthp -= 1
-        elsif gameOver?(args) == true && args.state.faintedIter < args.state.faintedDuration
-            args.state.faintedIter += 1
-            setAnimationFull(args) if args.state.faintedIter == 0
-        elsif args.state.opponentStatIter < args.state.statChangeDuration
-            args.state.opponentStatIter += 1
-        elsif args.state.mypokemonAnimation <= args.state.frameDuration
-            args.state.mypokemonAnimation += 1
-        elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
-            args.state.mypokemonAnimation = 10000
-            args.state.pokemon[1].currenthp -= 1
-        elsif success?(args) == true && args.state.faintedIter < args.state.faintedDuration
-            args.state.faintedIter += 1
-            setAnimationFull(args) if args.state.faintedIter == 0
-        elsif args.state.myStatIter < args.state.statChangeDuration
-            args.state.myStatIter += 1
-        elsif args.state.moveset1[args.state.moveChosenOpponent].protect == true &&
-            args.state.moveset0[args.state.moveChosen].protect != true && args.state.unaffectedAnimation < args.state.frameDuration
-            args.state.unaffectedAnimation = args.state.unaffectedAnimation + 1
-        else
-            setDefaults args if gameOver?(args) == nil && success?(args) == nil
-        end
     end
-  end
 
 end
 
@@ -639,6 +723,7 @@ def setAnimationFull args
     args.state.mypokemonAnimation = 10000
     args.state.pokemon[0].finalhp = args.state.pokemon[0].currenthp if success?(args)
     args.state.pokemon[1].finalhp = args.state.pokemon[1].currenthp if gameOver?(args)
+    args.state.scene = :end
 end
 
 def setDefaults args
@@ -661,4 +746,8 @@ def tick args
     defaults args
     render args
     calc args
+
+    if args.state.scene == :end && args.inputs.keyboard.key_up.space
+        args.dragon.reset
+    end
 end
