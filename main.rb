@@ -105,7 +105,7 @@ def defaults args
     args.state.moveset1 ||= [
         [:growl, 0, 0, 0, 0, 10, false],
         [:vinewhip, 30, 0, 0, 0, 0, false],
-        [:tackle, 20, 0, 10, 0, 0, false],
+        [:tackle, 20, 0, 0, 0, 0, false],
         [:protect, 0, 0, 0, 0, 0, true]
     ].map do |name, attack, aBoost, aLower, dBoost, dLower, pro|
         args.state.new_entity(name) do |m|
@@ -145,6 +145,7 @@ def render args
     args.outputs.solids << [args.state.pokemon1x + 100, args.state.pokemon1y - 113, 250, 16]
     args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 110, ((1 / 1) * 246).to_i, 10, 0, 191, 255]
 
+    #Creates opponent health bar with smooth decrease & color
     if (args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) > 0.30
         args.outputs.solids << [args.state.pokemon1x + 102, args.state.pokemon1y - 85,
                                 ((args.state.pokemon[1].currenthp / args.state.pokemon[1].hp) * 246).to_i, 10,
@@ -178,7 +179,7 @@ def render args
                             12, 1, 0, 0, 0, 255, 'fonts/manaspc.ttf'] 
     args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 110, ((1 / 1) * 246).to_i, 10, 0, 191, 255]
 
-
+    #Creates my pokemon's health bars with color & smooth decrease
     if (args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) > 0.30
         args.outputs.solids << [args.state.pokemon2x + 52, args.state.pokemon2y - 85,
                                 ((args.state.pokemon[0].currenthp / args.state.pokemon[0].hp) * 246).to_i, 10,
@@ -200,13 +201,14 @@ def render args
     end
 
     if args.state.moveChosen == -1 && args.state.chosePotion == false && args.state.moveChosenOpponent == -1
-        #Rendering bottom menu
+        #Rendering bottom menu if the player has not chosen an action yet
         if !args.state.choseFight && !args.state.choseItem
             args.outputs.labels << [900, 200, 'FIGHT', 15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
             args.outputs.labels << [900, 100, 'ITEM', 15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
             args.outputs.sprites << [args.state.pokeballPlacementX, args.state.pokeballPlacementY[args.state.pokeballState],
                                     50, 50, 'sprites/pokeball.png']
         end
+        #Depending on what menu the player is in, the menu will change
         if args.state.choseFight == true
             args.outputs.labels << [200, 200, args.state.moveset0[0].name, 15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
             args.outputs.labels << [200, 100, args.state.moveset0[1].name, 15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
@@ -224,6 +226,8 @@ def render args
                                     'sprites/pokeball.png']
         end
     elsif args.state.chosePotion == true
+        #Renders the item sequence. The only item is the potion, and this is render order for item selection
+        #Order: display item usage, increase health bar, opponent move label, opponent move effect, check for game over
         if args.state.mypokemonAnimation <= args.state.frameDuration
             args.outputs.labels << [150, 200, 'You used a Potion!', 15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
         elsif args.state.hpIncreaseIter < 20
@@ -243,6 +247,8 @@ def render args
         end
     else
         if args.state.mypokemonfirst == true
+            #This branch is taken when my pokemon will attack first
+            #Order: my pokemon animation, decrease health bar, opponent animation, decrease health bar
             renderMyProtect(args)
             if args.state.mypokemonAnimation <= args.state.frameDuration
                 renderMyMoveLabel(args)
@@ -273,6 +279,8 @@ def render args
                                         15, 0, 0, 0, 0, 255, 'fonts/manaspc.ttf']
             end
         else
+          #Branch taken when opponent attacks first
+          #Order: opponent animation, decrease health, my pokemon animation, decrease health
             renderOpponentProtect(args)
             if args.state.otherpokemonAnimation <= args.state.frameDuration
                 renderOpponentMoveLabel(args)
@@ -303,6 +311,7 @@ def render args
         end
     end
 
+    #Determine if game is finished
     renderEndgame(args)
 
 end
@@ -314,6 +323,7 @@ def renderMyMoveLabel args
 end
 
 def renderMyMove args
+    #Renders the move selected
     renderEmber(args)   if args.state.moveChosen == 0
     renderScratch(args) if args.state.moveChosen == 1
     renderLeer(args)    if args.state.moveChosen == 2
@@ -361,6 +371,7 @@ def renderOpponentMoveLabel args
 end
 
 def renderOpponentMove args
+    #Renders opponent's moves
     renderGrowl(args)    if args.state.moveChosenOpponent == 0
     renderVinewhip(args) if args.state.moveChosenOpponent == 1
     renderTackle(args)   if args.state.moveChosenOpponent == 2
@@ -387,7 +398,14 @@ def renderVinewhip args
 end
 
 def renderTackle args
-
+    if args.state.otherpokemonAnimation < args.state.frameDuration / 2
+        args.outputs.primitives << [:solids, 825, 475, 300, 300, 255, 255, 255]
+        args.outputs.primitives << [:sprites, 825 - (8 * (args.state.otherpokemonAnimation)),
+                                    475 - (1.5 * args.state.otherpokemonAnimation),
+                                    300, 300, 'sprites/bulbasaur.png']
+    else
+        args.state.otherpokemonAnimation = args.state.frameDuration
+    end
 end
 
 def renderMyProtect args
@@ -405,6 +423,7 @@ end
 def renderEndgame args
     return unless args.state.scene == :end && args.state.faintedIter == args.state.faintedDuration
 
+    #Codes for the black screen at the end of the game
     args.outputs.primitives << [:solids, 0, 720, 1280, -36 * args.state.endgameIter, 0, 0, 0]
 
     if success?(args) == true
@@ -439,6 +458,7 @@ def calc args
         #Keyboard input for ITEM menu
         itemNavigation(args) if args.state.choseItem == true
     else
+        #Chooses opponent's move. A typical pokemon game would have some sort of smart calc here but I simply used a RNG
         if args.state.moveChosenOpponent == -1
             args.state.moveChosenOpponent = rand(4)
         end
@@ -465,8 +485,11 @@ def calc args
             args.state.battleOrder = true
         end
 
+        #Same thing as render order, but instead of rendering, the iters increase and checks for success/failure
+        #Sets everything to default afterwards
         if args.state.mypokemonfirst == true || args.state.chosePotion == true
             if args.state.chosePotion == true
+                #Sequence if potion is used
                 if args.state.mypokemonAnimation <= args.state.frameDuration
                     args.state.mypokemonAnimation += 1
                 elsif args.state.hpIncreaseIter < 20
@@ -488,6 +511,7 @@ def calc args
                     setDefaults(args) if gameOver?(args) == nil && success?(args) == nil
                 end
             else
+                #Sequence if my pokemon attacks first
                 if args.state.mypokemonAnimation <= args.state.frameDuration
                     args.state.mypokemonAnimation += 1
                 elsif args.state.pokemon[1].currenthp > args.state.pokemon[1].finalhp
@@ -517,6 +541,7 @@ def calc args
                 end
             end
         else
+            #Sequence if opponent pokemon attacks first
             if args.state.otherpokemonAnimation <= args.state.frameDuration
                 args.state.otherpokemonAnimation += 1
             elsif args.state.pokemon[0].currenthp > args.state.pokemon[0].finalhp
@@ -550,12 +575,13 @@ end
 
 def fightItemNavigation args
 
+    #Navigation between options in first menu
     args.state.pokeballState = 1 if args.inputs.keyboard.key_up.w
     args.state.pokeballState = 0 if args.inputs.keyboard.key_up.s
 
     if args.inputs.keyboard.key_up.space && args.state.pokeballState == 1
         args.state.choseFight = true
-        args.inputs.keyboard.clear
+        args.inputs.keyboard.clear    #VERY IMPORTANT! Ensures that the spacebar input does not stay in the next frame!!!
     end
     if args.inputs.keyboard.key_up.space && args.state.pokeballState == 0
         args.state.choseItem = true
@@ -565,6 +591,7 @@ end
 
 def fightNavigation args
     #Keyboard input (the nested if statements insure that the pokeball is never on [2,0], which is empty
+    #Very annoying code but essentially moves between options on the menu using a matrix
     if args.inputs.keyboard.key_up.w 
         args.state.pokeballPlacementFightStatus[1] = args.state.pokeballPlacementFightStatus[1] + 1
         if args.state.pokeballPlacementFightStatus[0] == 2 && args.state.pokeballPlacementFightStatus[1] == 2
@@ -632,7 +659,8 @@ def itemNavigation args
         args.inputs.keyboard.clear
         args.state.potionQuantity = args.state.potionQuantity - 1
         args.state.chosePotion = true
-        args.state.moveChosen = 10
+        args.state.moveChosen = 10 #ensures everything renders properly but ignores it because movechosen is never used in
+                                   #the item sequence
     end
 
 end
@@ -640,22 +668,26 @@ end
 def updateStats args
     if args.state.moveset0[args.state.moveChosen].protect != true
         if args.state.moveset1[args.state.moveChosenOpponent].attack != 0
+            #calcualtes the new hp for my pokemon
             args.state.pokemon[0].finalhp -= args.state.moveset1[args.state.moveChosenOpponent].attack + args.state.pokemon[1].attack -
                                             args.state.pokemon[0].defense + rand(11)
             args.state.pokemon[0].finalhp = 0 if args.state.pokemon[0].finalhp < 0
             args.state.opponentStatIter = args.state.statChangeDuration
-      else
-        args.state.pokemon[0].attack += args.state.moveset0[args.state.moveChosen].aBoost -
-                                        args.state.moveset1[args.state.moveChosenOpponent].aLower
+        else
+            #updates stats on my pokemon
+            args.state.pokemon[0].attack += args.state.moveset0[args.state.moveChosen].aBoost -
+                                            args.state.moveset1[args.state.moveChosenOpponent].aLower
 
-        args.state.pokemon[0].defense += args.state.moveset0[args.state.moveChosen].dBoost -
-                                        args.state.moveset1[args.state.moveChosenOpponent].dLower
-      end
+            args.state.pokemon[0].defense += args.state.moveset0[args.state.moveChosen].dBoost -
+                                            args.state.moveset1[args.state.moveChosenOpponent].dLower
+        end
     else
+        #If there is no stat change, it shouldn't run. To do this, the iters are modified
         args.state.opponentStatIter = args.state.statChangeDuration
         args.state.myStatIter = args.state.statChangeDuration
     end
 
+    #Same thing but instead of my pokemon being updated, it's the opponent's pokemon
     if args.state.moveset1[args.state.moveChosenOpponent].protect != true 
         if args.state.moveset0[args.state.moveChosen].attack != 0
             args.state.pokemon[1].finalhp -= args.state.moveset0[args.state.moveChosen].attack + args.state.pokemon[0].attack -
@@ -680,6 +712,7 @@ def updateStats args
 end
 
 def updatePotionStats args
+    #Adjusts my pokemon's stats. There are no moves that allow for stat boost of oneself, so that was not implemented
     args.state.pokemon[0].attack -= args.state.moveset1[args.state.moveChosenOpponent].aLower
     args.state.pokemon[0].defense -= args.state.moveset1[args.state.moveChosenOpponent].dLower
     args.state.pokemon[1].attack += args.state.moveset1[args.state.moveChosenOpponent].aBoost
@@ -687,9 +720,7 @@ def updatePotionStats args
 
     args.state.pokemon[0].finalhp += 20
     
-    if args.state.pokemon[0].finalhp > 100
-        args.state.pokemon[0].finalhp = 100
-    end
+    args.state.pokemon[0].finalhp = 100 if args.state.pokemon[0].finalhp > 100 #VERY IMPORTANT THAT THIS IS BEFORE THE NEXT IF STATEMENT
 
     if args.state.moveset1[args.state.moveChosenOpponent].attack != 0
         args.state.pokemon[0].finalhp -= args.state.moveset1[args.state.moveChosenOpponent].attack + args.state.pokemon[1].attack -
@@ -717,6 +748,7 @@ def success? args
 end
 
 def setAnimationFull args
+    #sets all of the animation iters to be done after one of the pokemon faint
     args.state.myStatIter = args.state.statChangeDuration
     args.state.opponentStatIter = args.state.statChangeDuration
     args.state.otherpokemonAnimation = 10000
@@ -747,6 +779,7 @@ def tick args
     render args
     calc args
 
+    #Resets the game in end screen
     if args.state.scene == :end && args.inputs.keyboard.key_up.space
         args.dragon.reset
     end
