@@ -1,6 +1,6 @@
 # Pokemon Roleplaying Game (RPG)
 
-![Gameplay](/images/Gameplay.png)
+![Gameplay](gameplay.gif)
 
 ## About
 
@@ -11,6 +11,3 @@ In this game, I made an incredibly simplified version of the popular game Pokemo
 To create this game, I utilized the game engine DragonRuby. DragonRuby is an incredibly powerful game development engine that provides simplicity without taking away functionality. For more information, pleaes visit the following link:
 
 https://dragonruby.itch.io/dragonruby-gtk
-
-## Gameplay
-![Gameplay](gameplay.gif)
