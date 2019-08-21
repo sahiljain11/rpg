@@ -10,4 +10,7 @@ In this game, I made an incredibly simplified version of the popular game Pokemo
 
 To create this game, I utilized the game engine DragonRuby. DragonRuby is an incredibly powerful game development engine that provides simplicity without taking away functionality. For more information, pleaes visit the following link:
 
-'''https://dragonruby.itch.io/dragonruby-gtk```
+https://dragonruby.itch.io/dragonruby-gtk
+
+## Gameplay
+<video src="gameplay.mp4" width="320" height="200" controls preload></video>
