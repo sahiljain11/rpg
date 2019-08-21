@@ -13,4 +13,4 @@ To create this game, I utilized the game engine DragonRuby. DragonRuby is an inc
 https://dragonruby.itch.io/dragonruby-gtk
 
 ## Gameplay
-<video src="gameplay.mp4" width="320" height="200" controls preload></video>
+![Gameplay](gameplay.gif)
